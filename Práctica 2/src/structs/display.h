@@ -11,7 +11,6 @@
 
 // Declare a new type definition to hold 32-bit colors value
 typedef uint32_t color_t;
-
 typedef void (*algoritmo_lineas)(int, int, int, int, color_t);
 
 extern SDL_Window* window ;

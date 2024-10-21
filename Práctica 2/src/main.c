@@ -31,7 +31,7 @@ void setup(void) {
     color_buffer_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, window_width, window_height);
 
     //load_cube_mesh_data();
-    load_obj_file_data("models/gunblade.obj");
+    load_obj_file_data("models/cubo.obj");
 
     n_vertices = array_length(mesh.vertices);
     n_faces = array_length(mesh.faces);
@@ -73,7 +73,7 @@ void update(void) { // línea 82
     //cube_rotation.z = 0.5;
 
     //cube_translation.x = -100.0;
-    cube_translation.z = 120.0;
+    cube_translation.z = 5.0;
 
     // Create scale, rotation and translation matrices that will ve used to multiply the Mesh
     mat4_t scale_matrix = mat4_make_scale(cube_scale.x,
@@ -123,23 +123,13 @@ void render(void) {
     }
 
     for(int i=0; i<n_faces; i++) {
-        draw_line(
+        draw_triangle(
             (int)projected_points[(int)(mesh.faces[i].a)-1].x + window_width/2,
             (int)projected_points[(int)(mesh.faces[i].a)-1].y + window_height/2,
             (int)projected_points[(int)(mesh.faces[i].b)-1].x + window_width/2,
             (int)projected_points[(int)(mesh.faces[i].b)-1].y + window_height/2,
-            0xFFFFFFFF, bresenham);
-        draw_line(
-            (int)projected_points[(int)(mesh.faces[i].b)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].b)-1].y + window_height/2,
             (int)projected_points[(int)(mesh.faces[i].c)-1].x + window_width/2,
             (int)projected_points[(int)(mesh.faces[i].c)-1].y + window_height/2,
-            0xFFFFFFFF, bresenham);
-        draw_line(
-            (int)projected_points[(int)(mesh.faces[i].c)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].c)-1].y + window_height/2,
-            (int)projected_points[(int)(mesh.faces[i].a)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].a)-1].y + window_height/2,
             0xFFFFFFFF, bresenham);
     }
 
