@@ -77,11 +77,16 @@ void draw_pixel(int x, int y, color_t color) {
     }
 }
 
-void draw_line(int x0, int y0, int x1, int y1, color_t color) {
+void draw_line(int x0, int y0, int x1, int y1, color_t color, algoritmo_lineas funcion) {
+    funcion(x0, y0, x1, y1, color);
+}
+
+void bresenham(int x0, int y0, int x1, int y1, color_t color) {
     int dx = abs(x1 - x0);
     int dy = abs(y1 - y0);
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
+    // incrementos
+    int xinc = (x0 < x1) ? 1 : -1; 
+    int yinc = (y0 < y1) ? 1 : -1;
     int err = dx - dy;
 
     while (true) {
@@ -91,14 +96,31 @@ void draw_line(int x0, int y0, int x1, int y1, color_t color) {
         int e2 = 2 * err;
         if (e2 > -dy) {
             err -= dy;
-            x0 += sx;
+            x0 += xinc;
         }
         if (e2 < dx) {
             err += dx;
-            y0 += sy;
+            y0 += yinc;
         }
     }
 }
+
+void DDA(int x0, int y0, int x1, int y1, color_t color) 
+{ 
+    int dx = x1 - x0; 
+    int dy = y1 - y0; 
+    int dmayor = abs(dx) > abs(dy) ? abs(dx) : abs(dy); 
+    // incrementos
+    float xinc = dx / (float)dmayor; 
+    float yinc = dy / (float)dmayor; 
+    float x = x0; 
+    float y = y0; 
+    for (int i = 0; i <= dmayor; i++) { 
+        draw_pixel(x0, y0, color);
+        x += xinc;
+        y += yinc;
+    } 
+} 
 
 void draw_rect(int x, int y, int width, int height, color_t color) {
     for (int i = 0; i < width; i++) {
