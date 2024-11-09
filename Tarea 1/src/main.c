@@ -3,21 +3,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "structs/display.h"
-#include "structs/vector.h"
-#include "structs/matrix.h"
-#include "structs/mesh.h"
-#include "structs/array.h"
-
-vec2_t *projected_points;
-
-vec3_t cube_rotation = {0, 0, 0};
-vec3_t cube_translation = {0, 0, 0};
-vec3_t cube_scale = {1, 1, 1};
-
-int n_vertices;
-int n_faces;
-
-float fov_factor = 720;
+//#include "structs/vector.h"
+//#include "structs/matrix.h"
+//#include "structs/mesh.h"
+//#include "structs/array.h"
 
 bool is_running = false;
 int previous_frame_time = 0;
@@ -29,13 +18,6 @@ void setup(void) {
     if(!color_buffer) {fprintf(stderr, "Error allocating memory for frame buffer,\n");}
     // Creating a SDL texture that is used to display the color buffer
     color_buffer_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, window_width, window_height);
-
-    load_cube_mesh_data();
-    //load_obj_file_data("models/cubo.obj");
-
-    n_vertices = array_length(mesh.vertices);
-    n_faces = array_length(mesh.faces);
-    projected_points = malloc(n_vertices * sizeof(vec2_t));
 }
 
 void process_input(void) {
@@ -53,85 +35,17 @@ void process_input(void) {
     }
 }
 
- /*
- * Function that recieves a 3D point and returns a projected ... // TODO implementar las fórmulas para la proyección las dos, pero solo usar una
- */
-vec2_t project_perspective(vec3_t point) {
-    vec2_t res;
-    res.x = (point.x*fov_factor)/point.z;
-    res.y = (point.y*fov_factor)/point.z;
-    return res;
-}
-
 void update(void) { // línea 82
-    cube_rotation.x += 0.01;
-    cube_rotation.y += 0.01;
-    cube_rotation.z += 0.01;
 
-    //cube_rotation.y = 1;
-
-    //cube_rotation.z = 0.5;
-
-    //cube_translation.x = -100.0;
-    cube_translation.z = 5.0;
-
-    // Create scale, rotation and translation matrices that will ve used to multiply the Mesh
-    mat4_t scale_matrix = mat4_make_scale(cube_scale.x,
-                                            cube_scale.y,
-                                            cube_scale.x);
-    mat4_t rotation_matrix_x = mat4_make_rotation_x(cube_rotation.x);
-    mat4_t rotation_matrix_y = mat4_make_rotation_y(cube_rotation.y);
-    mat4_t rotation_matrix_z = mat4_make_rotation_z(cube_rotation.z);
-    mat4_t translation_matrix = mat4_make_translation(
-        cube_translation.x, cube_translation.y,
-        cube_translation.z);
-
-    // Create a World Matrix combining scale, rotation and translation matrices
-    mat4_t world_matrix = mat4_identity();
-
-    // Order matters: First scale, then rotate, then translate.
-    // [T]*[R]*[S]*v
-    world_matrix = mat4_mul_mat4(scale_matrix, world_matrix);
-    world_matrix = mat4_mul_mat4(rotation_matrix_z, world_matrix);
-    world_matrix = mat4_mul_mat4(rotation_matrix_y, world_matrix);
-    world_matrix = mat4_mul_mat4(rotation_matrix_x, world_matrix);
-    world_matrix = mat4_mul_mat4(translation_matrix, world_matrix);
-
-    vec4_t *transformed_points = malloc(n_vertices * sizeof(vec4_t));
-    for(int i=0; i<n_vertices; i++) {
-        vec4_t transformed_point = vec4_from_vec3(mesh.vertices[i]);
-        transformed_point = mat4_mul_vec4(world_matrix, transformed_point);
-        transformed_points[i] = transformed_point;
-        vec2_t projected_point = project_perspective(vec3_from_vec4(transformed_points[i]));
-        projected_points[i] = projected_point;
-    }
-    free(transformed_points);
 }
 
 void render(void) {
     draw_grid();
 
-    for(int i=0; i<n_vertices; i++) {
-        vec2_t projected_point = projected_points[i];
-        draw_rect(
-            projected_point.x + window_width/2,
-            projected_point.y + window_height/2,
-            4,
-            4,
-            0xFFFFFF00
-        );
-    }
-
-    for(int i=0; i<n_faces; i++) {
-        draw_triangle(
-            (int)projected_points[(int)(mesh.faces[i].a)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].a)-1].y + window_height/2,
-            (int)projected_points[(int)(mesh.faces[i].b)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].b)-1].y + window_height/2,
-            (int)projected_points[(int)(mesh.faces[i].c)-1].x + window_width/2,
-            (int)projected_points[(int)(mesh.faces[i].c)-1].y + window_height/2,
-            0xFFFFFFFF, bresenham);
-    }
+    draw_circle(500, 500, 200, 0xFFFFFFFF);
+    draw_circle(1200, 300, 125, 0xFFFF3030);
+    draw_circle(1000, 400, 80, 0xFF30FF30);
+    draw_circle(1600, 700, 150, 0xFF3030FF);
 
     render_color_buffer();
     clear_color_buffer(0xFF000000);
@@ -145,7 +59,6 @@ int main(int argc, char* argv[]) {
     setup();
 
     while(is_running) {
-        
         
         previous_frame_time = SDL_GetTicks();
         
@@ -164,8 +77,6 @@ int main(int argc, char* argv[]) {
 
     }
 
-    free(projected_points);
-    
     destroy_window();
     return 0;
 }

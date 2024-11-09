@@ -133,6 +133,33 @@ void draw_rect(int x, int y, int width, int height, color_t color) {
     }
 }
 
+void draw_circle(int cx, int cy, int r, color_t color) {
+    int d = 3 - 2 * r;
+    int x = 0;
+    int y = r;
+    draw_circle_pixels(cx, cy, x, y, color);
+    while (y >= x) {
+        if(d >= 0) {
+            y--;
+            d = d+4*(x-y)+10;
+        } else
+            d = d+4*x+6;
+        x++;
+        draw_circle_pixels(cx, cy, x, y, color);
+    }
+}
+
+void draw_circle_pixels(int cx, int cy, int x, int y, color_t color) {
+    draw_pixel(cx+x, cy+y, color);
+    draw_pixel(cx-x, cy+y, color);
+    draw_pixel(cx-y, cy+x, color);
+    draw_pixel(cx-y, cy-x, color);
+    draw_pixel(cx-x, cy-y, color);
+    draw_pixel(cx+x, cy-y, color);
+    draw_pixel(cx+y, cy-x, color);
+    draw_pixel(cx+y, cy+x, color);
+}
+
 void render_color_buffer(void){
     // Copy the frame buffer to the texture
     SDL_UpdateTexture(
