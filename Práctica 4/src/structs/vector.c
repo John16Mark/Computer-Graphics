@@ -87,19 +87,19 @@ vec3_t vec3_cross(vec3_t a, vec3_t b) {
     return res;
 }
 
-vec3_t vec3_normal(vec3_t a, vec3_t b, vec3_t c) {
-    vec3_t ab = vec3_sub(b, a);
-    vec3_t ac = vec3_sub(c, a);
-    vec3_t resultado = vec3_cross(ab, ac);
-    //vec3_normalize(&resultado);
-    return resultado;
+vec3_t vec3_normal(vec3_t p1, vec3_t p2, vec3_t p3) {
+    vec3_t A = vec3_sub(p2, p1);
+    vec3_t B = vec3_sub(p3, p1);
+    vec3_t normal = vec3_cross(A, B);
+    vec3_normalize(&normal); // Normaliza el vector resultante si lo necesitas unitario
+    return normal;
 }
 
 bool es_visible(vec3_t p1, vec3_t p2, vec3_t p3, vec3_t camara) {
     vec3_t normal = vec3_normal(p1, p2, p3);
     vec3_t camera_ray = vec3_sub(camara, p1);
     float dot = vec3_dot(normal, camera_ray);
-    return dot < 0;
+    return dot >= 0;
 }
 
 float vec3_dot(vec3_t a, vec3_t b) {

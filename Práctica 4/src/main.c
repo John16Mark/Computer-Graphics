@@ -12,6 +12,7 @@
 typedef uint32_t color_t;
 typedef vec2_t (*algoritmo_proyeccion)(vec3_t);
 
+vec4_t *transformed_points;
 vec2_t *projected_points;
 
 vec3_t cube_rotation = {0, 0, 0};
@@ -21,7 +22,7 @@ vec3_t cube_scale = {1, 1, 1};
 int n_vertices;
 int n_faces;
 
-vec3_t camera_position = {0,0,0};
+vec3_t camera_position = {0.0, 0.0, 0.0};
 
 bool flag_perspective = true;
 bool flag_vertices = true;
@@ -46,6 +47,7 @@ void setup(void) {
 
     n_vertices = array_length(mesh.vertices);
     n_faces = array_length(mesh.faces);
+    transformed_points = malloc(n_vertices * sizeof(vec4_t));
     projected_points = malloc(n_vertices * sizeof(vec2_t));
 }
 
@@ -106,31 +108,10 @@ vec2_t project(vec3_t point, algoritmo_proyeccion funcion) {
     return funcion(point);
 }
 
-float calculate_area_2d(vec2_t p1, vec2_t p2, vec2_t p3) {
-    return 0.5f * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
-}
-
-void ensure_counter_clockwise(face_t* face, vec3_t* vertices) {
-    vec3_t a = vertices[face->a];
-    vec3_t b = vertices[face->b];
-    vec3_t c = vertices[face->c];
-
-    vec2_t pa = project(a, project_perspective);
-    vec2_t pb = project(b, project_perspective);
-    vec2_t pc = project(c, project_perspective);
-
-    if (calculate_area_2d(pa, pb, pc) < 0) {
-        // Intercambiar b y c para corregir el orden
-        int temp = face->b;
-        face->b = face->c;
-        face->c = temp;
-    }
-}
-
 void update(void) {
     cube_rotation.x += 0.01;
-    cube_rotation.y += 0.01;
-    cube_rotation.z += 0.01;
+    cube_rotation.y += 0.02;
+    cube_rotation.z += 0.04;
     /*
     cube_rotation.x = 1.6;
     cube_rotation.y = 1.6;
@@ -165,7 +146,6 @@ void update(void) {
     world_matrix = mat4_mul_mat4(rotation_matrix_x, world_matrix);
     world_matrix = mat4_mul_mat4(translation_matrix, world_matrix);
 
-    vec4_t *transformed_points = malloc(n_vertices * sizeof(vec4_t));
     for(int i=0; i<n_vertices; i++) {
         // Transformar puntos
         vec4_t transformed_point = vec4_from_vec3(mesh.vertices[i]);
@@ -175,7 +155,7 @@ void update(void) {
         vec2_t projected_point = (flag_perspective) ? project(vec3_from_vec4(transformed_points[i]), project_perspective) : project(vec3_from_vec4(transformed_points[i]), project_orthographic);
         projected_points[i] = projected_point;
     }
-    free(transformed_points);
+    
 }
 
 void render(void) {
@@ -184,22 +164,21 @@ void render(void) {
     if(flag_triangles) {
         for(int i=0; i<n_faces; i++) {
             face_t face = mesh.faces[i];
-            ensure_counter_clockwise(&face, mesh.vertices);
-            vec3_t a = mesh.vertices[face.a-1];
-            vec3_t b = mesh.vertices[face.b-1];
-            vec3_t c = mesh.vertices[face.c-1];
+            vec3_t a_transformado = vec3_from_vec4(transformed_points[(face.a)-1]);
+            vec3_t b_transformado = vec3_from_vec4(transformed_points[(face.b)-1]);
+            vec3_t c_transformado = vec3_from_vec4(transformed_points[(face.c)-1]);
 
-            if (es_visible(a, b, c, camera_position)) {
+            if (es_visible(a_transformado, b_transformado, c_transformado, camera_position)) {
                 render_triangle(
-                    (int)projected_points[(mesh.faces[i].a)-1].x + window_width/2,
-                    (int)projected_points[(mesh.faces[i].a)-1].y + window_height/2,
-                    (int)projected_points[(mesh.faces[i].b)-1].x + window_width/2,
-                    (int)projected_points[(mesh.faces[i].b)-1].y + window_height/2,
-                    (int)projected_points[(mesh.faces[i].c)-1].x + window_width/2,
-                    (int)projected_points[(mesh.faces[i].c)-1].y + window_height/2,
+                    (int)projected_points[(face.a)-1].x + window_width/2,
+                    (int)projected_points[(face.a)-1].y + window_height/2,
+                    (int)projected_points[(face.b)-1].x + window_width/2,
+                    (int)projected_points[(face.b)-1].y + window_height/2,
+                    (int)projected_points[(face.c)-1].x + window_width/2,
+                    (int)projected_points[(face.c)-1].y + window_height/2,
                     mesh.faces[i].color,
-                    //0xFFFFFFFF,
                     bresenham);
+                //printf("%d\n", i);
             }
         }
     }
@@ -260,6 +239,7 @@ int main(int argc, char* argv[]) {
 
     }
 
+    free(transformed_points);
     free(projected_points);
     
     destroy_window();

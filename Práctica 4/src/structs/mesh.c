@@ -33,8 +33,8 @@ face_t cube_faces[N_CUBE_FACES] = {
     { .a = 8, .b = 7, .c = 2, .color = YELLOW },
     { .a = 8, .b = 2, .c = 1, .color = YELLOW },
     // top
-    { .a = 2, .b = 7, .c = 5, .color = RED },
-    { .a = 2, .b = 5, .c = 3, .color = RED },
+    { .a = 2, .b = 7, .c = 5, .color = MAGENTA },
+    { .a = 2, .b = 5, .c = 3, .color = MAGENTA },
     // bottom
     { .a = 6, .b = 8, .c = 1, .color = CYAN },
     { .a = 6, .b = 1, .c = 4, .color = CYAN }
