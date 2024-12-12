@@ -26,8 +26,8 @@ int n_faces;
 vec3_t camara = {0.0, 0.0, 0.0};
 
 bool flag_perspective = true;
-bool flag_vertices = true;
-bool flag_lines = true;
+bool flag_vertices = false;
+bool flag_lines = false;
 bool flag_triangles = true;
 bool flag_shader = false;
 
@@ -39,16 +39,16 @@ float fov_factor_orthographic;
 bool is_running = false;
 int previous_frame_time = 0;
 
+bool debug = true;
+bool debug2 = true;
+bool debug3 = true;
+
 light_t luz = {
-    .direction = { 0, 0, 1 }
+    .direction = { 0, 0, 1 },
+    .ambient = 0.2
 };
 
-
-vec3_t calcular_normal_vertice(int vertice, index* caras_adyacentes, face_t* faces);
-void calcular_normales_vertices(mesh_t* mesh, int n_faces);
-float calcular_intensidad_lambert(vec3_t normal, vec3_t luz);
-float calcular_intensidad(vec3_t normal, vec3_t light_dir);
-void calcular_intensidades_vertices(mesh_t* mesh, vec3_t light_dir);
+vec3_t calcular_normal_vertice(index* caras_adyacentes);
 
 void setup(void) {
     // Allocate the requiered memory in bytes to hold the color buffer
@@ -189,14 +189,37 @@ vec2_t project(vec3_t point, algoritmo_proyeccion funcion) {
     return funcion(point);
 }
 
+vec3_t calcular_normal_vertice(index* caras_adyacentes) {
+    vec3_t normal_sum = {0, 0, 0};
+    int n = array_length(caras_adyacentes);
+
+    // Sumatoria de las normales
+    for (int i = 0; i < n; i++) {
+        int face_index = caras_adyacentes[i].i;
+        normal_sum = vec3_add(normal_sum, mesh.faces[face_index].normal);
+    }
+
+    // Promedio
+    if (n > 0)
+        normal_sum = vec3_div(normal_sum, n);
+    
+    normal_sum.x = - normal_sum.x;
+    normal_sum.y = - normal_sum.y;
+    normal_sum.z = - normal_sum.z;
+    // Normalizar el vector
+    vec3_normalize(&normal_sum);
+    return normal_sum;
+}
+
 void update(void) {
+    
     cube_rotation.x += 0.01;
     cube_rotation.y += 0.02;
     cube_rotation.z += 0.04;
     /*
-    cube_rotation.x = 1.6;
-    cube_rotation.y = 1.6;
-    cube_rotation.z = 1.6;
+    cube_rotation.x = 60;
+    cube_rotation.y = 90;
+    cube_rotation.z = 52;
     */
     //cube_rotation.y = 1;
 
@@ -248,10 +271,34 @@ void update(void) {
         float dot = vec3_dot(normal, camera_ray);
         mesh.faces[i].visible = dot >= 0;
         mesh.faces[i].normal = normal;
-        
+
+        if(debug3) {
+            printf("\033[93mCara %d\n\033[0m", i+1);
+            printf("  \033[96ma: \033[0m%f %f %f\n", a_transformado.x, a_transformado.y, a_transformado.z);
+            printf("  \033[96mb: \033[0m%f %f %f\n", b_transformado.x, b_transformado.y, b_transformado.z);
+            printf("  \033[96mc: \033[0m%f %f %f\n", c_transformado.x, c_transformado.y, c_transformado.z);
+            if(i==n_faces-1)
+                debug3 = false;
+        }
         // Gouraud Shading
         if(flag_shader) {
-            calcular_normales_vertices(&mesh, n_faces);
+
+            // Para cada cara
+            face_t* face = &(mesh.faces[i]);
+
+            // Calcular normales por vértice usando las caras adyacentes
+            face->normal_a = calcular_normal_vertice(face->a_adyacentes);
+            face->normal_b = calcular_normal_vertice(face->b_adyacentes);
+            face->normal_c = calcular_normal_vertice(face->c_adyacentes);
+
+            if(debug2 && i==0) {
+                printf("\033[92mVector 0\n");
+                printf("normal a: %f %f %f\n", face->normal_a.x, face->normal_a.y, face->normal_a.z);
+                printf("normal b: %f %f %f\n", face->normal_b.x, face->normal_b.y, face->normal_b.z);
+                printf("normal c: %f %f %f\n", face->normal_c.x, face->normal_c.y, face->normal_c.z);
+                debug2 = false;
+            }
+
         }
 
         // Calcular profundidad
@@ -267,6 +314,35 @@ void update(void) {
     //QuickSort_faces(mesh.faces, 0, n_faces-1);
 }
 
+float phong_lighting(vec3_t normal) {
+    // Luz ambiente
+    float ambiente = luz.ambient;
+
+    // Luz difusa
+    vec3_t luz_n = luz.direction;
+    vec3_normalize(&luz_n);
+    vec3_t camara_n = camara;
+    vec3_normalize(&camara_n);
+    float difusa = 0.8f*fmax(vec3_dot(normal, luz_n), 0.0f);
+
+    // Luz especular
+    vec3_t reflect_dir = vec3_mul(normal, 2.0f * vec3_dot(normal, luz_n));
+    vec3_normalize(&reflect_dir);
+    reflect_dir = vec3_sub(reflect_dir, luz_n);
+    vec3_normalize(&reflect_dir);
+    
+    float shininess = 32.0f;
+    float specular_coeff = 0.5f;
+    float spec = pow(fmax(vec3_dot(camara_n, reflect_dir), 0.0f), shininess);
+    float specular = specular_coeff * spec * 0;
+
+    // Iluminación
+    float phong = ambiente + difusa + specular;
+    if(phong < 0) phong = 0;
+    if(phong > 1) phong = 1;
+    return phong;
+}
+
 void render(void) {
     draw_grid();
 
@@ -279,13 +355,45 @@ void render(void) {
 
             if (es_visible(a_transformado, b_transformado, c_transformado, camara) || !flag_perspective) {
                 color_t color = mesh.faces[i].color;
-                if (flag_shader) {/*
+                if (flag_shader) {
+                    
                     vec3_t normal = vec3_normal(a_transformado, b_transformado, c_transformado);
                     float I = - (vec3_dot(normal, luz.direction));
-                    color = light_apply_intensity(WHITE, I);*/
-                    float I_a = face.intensidad_a; // Calculadas previamente en la fase de actualización
-                    float I_b = face.intensidad_b;
-                    float I_c = face.intensidad_c;
+                    color = light_apply_intensity(WHITE, I);
+                    if(debug && I < 0) {
+                        printf("\033[96mrender\033[0m\n");
+                        printf("normal: %f %f %f\n", normal.x, normal.y, normal.z);
+                        printf("I: %f\n", I);
+                        debug = false;
+                    }
+                    
+                    //vec3_t normal_a
+                    
+                    float I_a =  (vec3_dot(face.normal_a, luz.direction));
+                    float I_b =  (vec3_dot(face.normal_b, luz.direction));
+                    float I_c =  (vec3_dot(face.normal_c, luz.direction));
+                    if(I_a < 0) I_a = 0;
+                    if(I_a > 0) I_a = 1;
+                    if(I_b < 0) I_b = 0;
+                    if(I_b > 0) I_b = 1;
+                    if(I_c < 0) I_c = 0;
+                    if(I_c > 0) I_c = 1;
+                    
+                    I_a = phong_lighting(face.normal_a);
+                    I_b = phong_lighting(face.normal_b);
+                    I_c = phong_lighting(face.normal_c);
+
+
+                    if(debug && i==0) {
+                        printf("\033[96mrender\033[0m\n");
+                        printf("normal a: %f %f %f\n", face.normal_a.x, face.normal_a.y, face.normal_a.z);
+                        printf("normal b: %f %f %f\n", face.normal_b.x, face.normal_b.y, face.normal_b.z);
+                        printf("normal c: %f %f %f\n", face.normal_c.x, face.normal_c.y, face.normal_c.z);
+                        printf("I_a: %f\n", I_a);
+                        printf("I_b: %f\n", I_b);
+                        printf("I_c: %f\n", I_c);
+                        
+                    }
 
                     render_triangle2(
                         (int)projected_points[(face.a)-1].x + window_width / 2,
@@ -297,9 +405,13 @@ void render(void) {
                         (int)projected_points[(face.c)-1].x + window_width / 2,
                         (int)projected_points[(face.c)-1].y + window_height / 2,
                         I_c,
-                        color, // Color base del triángulo
+                        WHITE, // Color base del triángulo
                         bresenham
                     );
+
+                    if((debug) && i==0) {
+                        debug = false;
+                    }
                 } else {
                     render_triangle(
                         (int)projected_points[(face.a)-1].x + window_width/2,
@@ -342,6 +454,7 @@ void render(void) {
                 0xFFFF00
             );
         }
+
     }
 
     render_color_buffer();
@@ -380,79 +493,3 @@ int main(int argc, char* argv[]) {
     destroy_window();
     return 0;
 }
-
-vec3_t calcular_normal_vertice(int vertice, index* caras_adyacentes, face_t* faces) {
-    vec3_t normal_sum = {0, 0, 0};
-    int n = array_length(caras_adyacentes);
-    // Sumatoria de las normales
-    for (int i = 0; i < n; i++) {
-        int face_index = caras_adyacentes[i].i;
-        normal_sum = vec3_add(normal_sum, faces[face_index].normal);
-    }
-    // Promedio
-    if (n > 0)
-        normal_sum = vec3_div(normal_sum, n);
-    // Normalizar el vector
-    vec3_normalize(&normal_sum);
-    return normal_sum;
-}
-
-void calcular_normales_vertices(mesh_t* mesh, int n_faces) {
-    for (int i = 0; i < n_faces; i++) {
-        face_t* face = &mesh->faces[i];
-
-        // Calcular normales por vértice usando las caras adyacentes
-        face->normal_a = calcular_normal_vertice(face->a, face->a_adyacentes, mesh->faces);
-        face->normal_b = calcular_normal_vertice(face->b, face->b_adyacentes, mesh->faces);
-        face->normal_c = calcular_normal_vertice(face->c, face->c_adyacentes, mesh->faces);
-    }
-}
-
-float calcular_intensidad_lambert(vec3_t normal, vec3_t luz) {
-    vec3_normalize(&luz);
-    return fmax(0.0f, vec3_dot(normal, luz));
-}
-
-float calcular_intensidad(vec3_t normal, vec3_t light_dir) {
-    vec3_normalize(&light_dir);
-    float intensidad = vec3_dot(normal, light_dir);
-
-    // Asegurarse de que la intensidad no sea negativa
-    return intensidad > 0 ? intensidad : 0;
-}
-
-void calcular_intensidades_vertices(mesh_t* mesh, vec3_t light_dir) {
-    for (int i = 0; i < array_length(mesh->faces); i++) {
-        face_t* face = &mesh->faces[i];
-
-        // Calcular intensidad en cada vértice
-        face->intensidad_a = calcular_intensidad(face->normal_a, light_dir);
-        face->intensidad_b = calcular_intensidad(face->normal_b, light_dir);
-        face->intensidad_c = calcular_intensidad(face->normal_c, light_dir);
-    }
-}
-/*
-void rasterizar_triangulo(face_t* face, framebuffer_t* framebuffer) {
-    // Interpolar las intensidades de los vértices A, B y C
-    for (int y = min_y; y < max_y; y++) {
-        for (int x = min_x; x < max_x; x++) {
-            if (dentro_del_triangulo(x, y, face)) {
-                float bary_a, bary_b, bary_c;
-                calcular_barycentric(x, y, face, &bary_a, &bary_b, &bary_c);
-
-                // Interpolar la intensidad
-                float intensidad = face->intensidad_a * bary_a +
-                                   face->intensidad_b * bary_b +
-                                   face->intensidad_c * bary_c;
-
-                // Establecer el color final
-                color_t color = face->color;
-                color.r *= intensidad;
-                color.g *= intensidad;
-                color.b *= intensidad;
-
-                framebuffer_set_pixel(framebuffer, x, y, color);
-            }
-        }
-    }
-}*/

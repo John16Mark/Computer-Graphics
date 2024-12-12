@@ -37,9 +37,11 @@ typedef struct {
 
 typedef struct {
     vec3_t direction;
+    float ambient;
 } light_t;
 
 extern light_t luz;
+extern bool debug;
 
 void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color, algoritmo_lineas funcion);
 void QuickSort_faces(face_t *A, int p, int r);

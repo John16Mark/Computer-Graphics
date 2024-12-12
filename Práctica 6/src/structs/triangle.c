@@ -72,19 +72,13 @@ void render_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t col
     vec2_t m;
 
     if(comparar_vec2_t(p0, p2)) {
-        m = p0;
-        p0 = p2;
-        p2 = m;
+        m = p0; p0 = p2; p2 = m;
     }
     if(comparar_vec2_t(p0, p1)) {
-        m = p0;
-        p0 = p1;
-        p1 = m;
+        m = p0; p0 = p1; p1 = m;
     }
     if(comparar_vec2_t(p1, p2)) {
-        m = p1;
-        p1 = p2;
-        p2 = m;
+        m = p1; p1 = p2; p2 = m;
     }
 
     if(p2.y - p0.y == 0)
@@ -137,39 +131,32 @@ void render_triangle2(
     float i_m;
 
     if (comparar_vec2_t(p0, p2)) {
-        m = p0;
-        p0 = p2;
-        p2 = m;
-
-        float temp_i = i0;
-        i0 = i2;
-        i2 = temp_i;
+        m = p0; p0 = p2; p2 = m;
+        float temp_i = i0; i0 = i2; i2 = temp_i;
     }
     if (comparar_vec2_t(p0, p1)) {
-        m = p0;
-        p0 = p1;
-        p1 = m;
-
-        float temp_i = i0;
-        i0 = i1;
-        i1 = temp_i;
+        m = p0; p0 = p1; p1 = m;
+        float temp_i = i0; i0 = i1; i1 = temp_i;
     }
     if (comparar_vec2_t(p1, p2)) {
-        m = p1;
-        p1 = p2;
-        p2 = m;
-
-        float temp_i = i1;
-        i1 = i2;
-        i2 = temp_i;
+        m = p1; p1 = p2; p2 = m;
+        float temp_i = i1; i1 = i2; i2 = temp_i;
     }
 
     if (p2.y - p0.y == 0)
         return;
 
+    // Punto medio
     m.y = p1.y;
-    m.x = (((p2.x - p0.x) * (p1.y - p0.y)) / (p2.y - p0.y)) + p0.x;
-    i_m = i0 + ((i2 - i0) * (p1.y - p0.y)) / (p2.y - p0.y);
+    m.x = ((p2.x - p0.x)*(p1.y - p0.y))/(p2.y - p0.y) + p0.x;
+    i_m = ((i2 - i0)*(p1.y - p0.y)) / (p2.y - p0.y) + i0;
+    if(debug) {
+        printf("p0: %f %f\t\033[95m%f\033[0m\n", p0.x, p0.y, i0);
+        printf("p1: %f %f\t\033[95m%f\033[0m\n", p1.x, p1.y, i1);
+        printf("p2: %f %f\t\033[95m%f\033[0m\n", p2.x, p2.y, i2);
+        printf("m: %f %f\t\033[95m%f\033[0m\n", m.x, m.y, i_m);
+        color_t colora = light_apply_intensity(0xFFFFFFFF, i_m);
+    }
 
     if (p0.y != p1.y)
         render_flat_bottom2(p0.x, p0.y, i0, p1.x, p1.y, i1, m.x, m.y, i_m, base_color, funcion);
@@ -186,6 +173,7 @@ void render_flat_bottom2(
 ) {
     float m1 = ((float)x1 - (float)x0) / ((float)y1 - (float)y0);
     float m2 = ((float)x2 - (float)x0) / ((float)y1 - (float)y0);
+    // Pendientes de intensidad
     float i_m1 = (i1 - i0) / ((float)y1 - (float)y0);
     float i_m2 = (i2 - i0) / ((float)y1 - (float)y0);
 
@@ -193,11 +181,16 @@ void render_flat_bottom2(
     float i_start = i0, i_end = i0;
 
     for (int y = y0; y <= y1; y++) {
-        draw_line_interpolated(
-            (int)xstart, y, i_start,
-            (int)xend, y, i_end,
-            base_color
-        );
+        int inicio = (int)xstart;
+        int final = (int)xend;
+        // Intercambiar si va de derecha a izquierda
+        if(inicio > final) {
+            int aux = inicio; inicio = final; final = aux;
+        }
+        for(int k=inicio; k<=final; k++) {
+            float i_p = i_end - ((i_end-i_start)/(xend-xstart))*(xend-k);
+            draw_pixel(k, y, light_apply_intensity(0xFFFFFFFF, i_p));
+        }
         xstart += m1;
         xend += m2;
         i_start += i_m1;
@@ -214,6 +207,7 @@ void render_flat_top2(
 ) {
     float m1 = ((float)x2 - (float)x0) / ((float)y2 - (float)y0);
     float m2 = ((float)x2 - (float)x1) / ((float)y2 - (float)y0);
+    // Pendientes de intensidad
     float i_m1 = (i2 - i0) / ((float)y2 - (float)y0);
     float i_m2 = (i2 - i1) / ((float)y2 - (float)y0);
 
@@ -221,18 +215,23 @@ void render_flat_top2(
     float i_start = i2, i_end = i2;
 
     for (int y = y2; y > y0; y--) {
-        draw_line_interpolated(
-            (int)xstart, y, i_start,
-            (int)xend, y, i_end,
-            base_color
-        );
+        int inicio = (int)xstart;
+        int final = (int)xend;
+        // Intercambiar si va de derecha a izquierda
+        if(inicio > final) {
+            int aux = inicio; inicio = final; final = aux;
+        }
+        for(int k=inicio; k<=final; k++) {
+            float i_p = i_end - ((i_end-i_start)/(xend-xstart))*(xend-k);
+            draw_pixel(k, y, light_apply_intensity(0xFFFFFFFF, i_p));
+        }
         xstart -= m1;
         xend -= m2;
         i_start -= i_m1;
         i_end -= i_m2;
     }
 }
-
+/*
 void draw_line_interpolated(
     int x0, int y0, float i0,
     int x1, int y1, float i1,
@@ -266,4 +265,4 @@ void draw_line_interpolated(
         draw_pixel(x, y0, interpolated_color); // Dibujar el píxel
         intensidad += di;
     }
-}
+}*/
