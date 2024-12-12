@@ -39,13 +39,15 @@ float fov_factor_orthographic;
 bool is_running = false;
 int previous_frame_time = 0;
 
-bool debug = true;
-bool debug2 = true;
-bool debug3 = true;
+bool debug = false;
+bool debug2 = false;
+bool debug3 = false;
 
+float angulo_luz = 0.0f;
+const float delta_angulo_luz = 0.03f; // Rota suavemente
 light_t luz = {
-    .direction = { 0, 0, 1 },
-    .ambient = 0.2
+    .direction = { 1, 0, 0 },
+    .ambient = 0.1
 };
 
 vec3_t calcular_normal_vertice(index* caras_adyacentes);
@@ -58,8 +60,8 @@ void setup(void) {
     // Creating a SDL texture that is used to display the color buffer
     color_buffer_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, window_width, window_height);
 
-    load_cube_mesh_data();
-    //load_obj_file_data("models/gunblade.obj");
+    //load_cube_mesh_data();
+    load_obj_file_data("models/Sword.obj");
 
     n_vertices = array_length(mesh.vertices);
     n_faces = array_length(mesh.faces);
@@ -81,7 +83,7 @@ void setup(void) {
         index* adyacentes_a = NULL;
         for(int j=0; j<n_faces; j++)
             // Si una cara diferente y también contiene el punto a
-            if(i!=j && (mesh.faces[i].a == mesh.faces[j].a || mesh.faces[i].a == mesh.faces[j].b || mesh.faces[i].a == mesh.faces[j].c)) {
+            if((mesh.faces[i].a == mesh.faces[j].a || mesh.faces[i].a == mesh.faces[j].b || mesh.faces[i].a == mesh.faces[j].c)) {
                 index indice;
                 indice.i = j;
                 array_push(adyacentes_a, indice);
@@ -91,7 +93,7 @@ void setup(void) {
         index* adyacentes_b = NULL;
         for(int j=0; j<n_faces; j++)
             // Si una cara diferente y también contiene el punto b
-            if(i!=j && (mesh.faces[i].b == mesh.faces[j].a || mesh.faces[i].b == mesh.faces[j].b || mesh.faces[i].b == mesh.faces[j].c)) {
+            if((mesh.faces[i].b == mesh.faces[j].a || mesh.faces[i].b == mesh.faces[j].b || mesh.faces[i].b == mesh.faces[j].c)) {
                 index indice;
                 indice.i = j;
                 array_push(adyacentes_b, indice);
@@ -101,7 +103,7 @@ void setup(void) {
         index* adyacentes_c = NULL;
         for(int j=0; j<n_faces; j++)
             // Si una cara diferente y también contiene el punto c
-            if(i!=j && (mesh.faces[i].c == mesh.faces[j].a || mesh.faces[i].c == mesh.faces[j].b || mesh.faces[i].c == mesh.faces[j].c)) {
+            if((mesh.faces[i].c == mesh.faces[j].a || mesh.faces[i].c == mesh.faces[j].b || mesh.faces[i].c == mesh.faces[j].c)) {
                 index indice;
                 indice.i = j;
                 array_push(adyacentes_c, indice);
@@ -110,18 +112,18 @@ void setup(void) {
     }
 
     for(int i=0; i<n_faces; i++) {
-        printf("------------------\nCara %d\n", i+1);
+        printf("\n------------------\nCara %d\n", i+1);
         printf("   a: \n");
         for(int j=0; j<array_length(mesh.faces[i].a_adyacentes); j++) {
-            printf("      %d\n", (mesh.faces[i].a_adyacentes[j]).i+1);
+            printf("   %d", (mesh.faces[i].a_adyacentes[j]).i+1);
         }
-        printf("   b: \n");
+        printf("\n   b: \n");
         for(int j=0; j<array_length(mesh.faces[i].b_adyacentes); j++) {
-            printf("      %d\n", (mesh.faces[i].b_adyacentes[j]).i+1);
+            printf("   %d", (mesh.faces[i].b_adyacentes[j]).i+1);
         }
-        printf("   c: \n");
+        printf("\n   c: \n");
         for(int j=0; j<array_length(mesh.faces[i].c_adyacentes); j++) {
-            printf("      %d\n", (mesh.faces[i].c_adyacentes[j]).i+1);
+            printf("   %d", (mesh.faces[i].c_adyacentes[j]).i+1);
         }
     }
 }
@@ -200,8 +202,8 @@ vec3_t calcular_normal_vertice(index* caras_adyacentes) {
     }
 
     // Promedio
-    if (n > 0)
-        normal_sum = vec3_div(normal_sum, n);
+    /*if (n > 0)
+        normal_sum = vec3_div(normal_sum, n);*/
     
     normal_sum.x = - normal_sum.x;
     normal_sum.y = - normal_sum.y;
@@ -212,6 +214,7 @@ vec3_t calcular_normal_vertice(index* caras_adyacentes) {
 }
 
 void update(void) {
+    //cube_rotation.x += 0.02;
     
     cube_rotation.x += 0.01;
     cube_rotation.y += 0.02;
@@ -220,13 +223,14 @@ void update(void) {
     cube_rotation.x = 60;
     cube_rotation.y = 90;
     cube_rotation.z = 52;
-    */
-    //cube_rotation.y = 1;
-
-    //cube_rotation.z = 0.5;
-
-    //cube_translation.x = -100.0;
-    cube_translation.z = 5.0;
+*/
+    cube_translation.z = 60.0;
+/*
+    luz.direction = vec3_rotate_y(luz.direction, delta_angulo_luz);
+    angulo_luz += delta_angulo_luz;
+    if (angulo_luz > 2 * M_PI) {
+        angulo_luz -= 2 * M_PI;
+    }*/
 
     // Create scale, rotation and translation matrices that will ve used to multiply the Mesh
     mat4_t scale_matrix = mat4_make_scale(cube_scale.x,
@@ -321,11 +325,11 @@ float phong_lighting(vec3_t normal) {
     // Luz difusa
     vec3_t luz_n = luz.direction;
     vec3_normalize(&luz_n);
-    vec3_t camara_n = camara;
-    vec3_normalize(&camara_n);
-    float difusa = 0.8f*fmax(vec3_dot(normal, luz_n), 0.0f);
+    float difusa = fmax(vec3_dot(luz_n, normal), 0.0f);
 
     // Luz especular
+    vec3_t camara_n = camara;
+    vec3_normalize(&camara_n);
     vec3_t reflect_dir = vec3_mul(normal, 2.0f * vec3_dot(normal, luz_n));
     vec3_normalize(&reflect_dir);
     reflect_dir = vec3_sub(reflect_dir, luz_n);
@@ -356,7 +360,7 @@ void render(void) {
             if (es_visible(a_transformado, b_transformado, c_transformado, camara) || !flag_perspective) {
                 color_t color = mesh.faces[i].color;
                 if (flag_shader) {
-                    
+                    /*
                     vec3_t normal = vec3_normal(a_transformado, b_transformado, c_transformado);
                     float I = - (vec3_dot(normal, luz.direction));
                     color = light_apply_intensity(WHITE, I);
@@ -365,27 +369,27 @@ void render(void) {
                         printf("normal: %f %f %f\n", normal.x, normal.y, normal.z);
                         printf("I: %f\n", I);
                         debug = false;
-                    }
-                    
-                    //vec3_t normal_a
-                    
-                    float I_a =  (vec3_dot(face.normal_a, luz.direction));
-                    float I_b =  (vec3_dot(face.normal_b, luz.direction));
-                    float I_c =  (vec3_dot(face.normal_c, luz.direction));
+                    }*/
+
+                    float I_a = (vec3_dot(face.normal_a, luz.direction));
+                    float I_b = (vec3_dot(face.normal_b, luz.direction));
+                    float I_c = (vec3_dot(face.normal_c, luz.direction));
+                    /*I_a = I;
+                    I_b = I;
+                    I_c = I;
                     if(I_a < 0) I_a = 0;
-                    if(I_a > 0) I_a = 1;
+                    if(I_a > 1) I_a = 1;
                     if(I_b < 0) I_b = 0;
-                    if(I_b > 0) I_b = 1;
+                    if(I_b > 1) I_b = 1;
                     if(I_c < 0) I_c = 0;
-                    if(I_c > 0) I_c = 1;
+                    if(I_c > 1) I_c = 1;*/
                     
                     I_a = phong_lighting(face.normal_a);
                     I_b = phong_lighting(face.normal_b);
                     I_c = phong_lighting(face.normal_c);
 
-
                     if(debug && i==0) {
-                        printf("\033[96mrender\033[0m\n");
+                        printf("\033[96mrender cara %d\033[0m\n",i);
                         printf("normal a: %f %f %f\n", face.normal_a.x, face.normal_a.y, face.normal_a.z);
                         printf("normal b: %f %f %f\n", face.normal_b.x, face.normal_b.y, face.normal_b.z);
                         printf("normal c: %f %f %f\n", face.normal_c.x, face.normal_c.y, face.normal_c.z);
@@ -393,6 +397,9 @@ void render(void) {
                         printf("I_b: %f\n", I_b);
                         printf("I_c: %f\n", I_c);
                         
+                    }
+                    if(i==n_faces-1) {
+                        debug = false;
                     }
 
                     render_triangle2(
@@ -409,9 +416,7 @@ void render(void) {
                         bresenham
                     );
 
-                    if((debug) && i==0) {
-                        debug = false;
-                    }
+
                 } else {
                     render_triangle(
                         (int)projected_points[(face.a)-1].x + window_width/2,

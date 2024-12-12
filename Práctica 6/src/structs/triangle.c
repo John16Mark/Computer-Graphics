@@ -150,13 +150,6 @@ void render_triangle2(
     m.y = p1.y;
     m.x = ((p2.x - p0.x)*(p1.y - p0.y))/(p2.y - p0.y) + p0.x;
     i_m = ((i2 - i0)*(p1.y - p0.y)) / (p2.y - p0.y) + i0;
-    if(debug) {
-        printf("p0: %f %f\t\033[95m%f\033[0m\n", p0.x, p0.y, i0);
-        printf("p1: %f %f\t\033[95m%f\033[0m\n", p1.x, p1.y, i1);
-        printf("p2: %f %f\t\033[95m%f\033[0m\n", p2.x, p2.y, i2);
-        printf("m: %f %f\t\033[95m%f\033[0m\n", m.x, m.y, i_m);
-        color_t colora = light_apply_intensity(0xFFFFFFFF, i_m);
-    }
 
     if (p0.y != p1.y)
         render_flat_bottom2(p0.x, p0.y, i0, p1.x, p1.y, i1, m.x, m.y, i_m, base_color, funcion);
@@ -231,38 +224,3 @@ void render_flat_top2(
         i_end -= i_m2;
     }
 }
-/*
-void draw_line_interpolated(
-    int x0, int y0, float i0,
-    int x1, int y1, float i1,
-    uint32_t base_color
-) {
-    if (x0 > x1) {
-        // Intercambiar extremos para garantizar que x0 < x1
-        int temp = x0; x0 = x1; x1 = temp;
-        float temp_i = i0; i0 = i1; i1 = temp_i;
-    }
-
-    // Interpolación de intensidad
-    float di = (i1 - i0) / (float)(x1 - x0);
-    float intensidad = i0;
-
-    // Extraer componentes del color base
-    uint8_t alpha = (base_color >> 24) & 0xFF;
-    uint8_t red = (base_color >> 16) & 0xFF;
-    uint8_t green = (base_color >> 8) & 0xFF;
-    uint8_t blue = base_color & 0xFF;
-
-    for (int x = x0; x <= x1; x++) {
-        // Escalar cada componente RGB por la intensidad actual
-        uint8_t r = (uint8_t)(red * intensidad);
-        uint8_t g = (uint8_t)(green * intensidad);
-        uint8_t b = (uint8_t)(blue * intensidad);
-
-        // Reensamblar el color interpolado
-        uint32_t interpolated_color = (alpha << 24) | (r << 16) | (g << 8) | b;
-
-        draw_pixel(x, y0, interpolated_color); // Dibujar el píxel
-        intensidad += di;
-    }
-}*/
