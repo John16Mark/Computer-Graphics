@@ -215,22 +215,26 @@ vec3_t calcular_normal_vertice(index* caras_adyacentes) {
 
 void update(void) {
     //cube_rotation.x += 0.02;
-    
+    /*
     cube_rotation.x += 0.01;
     cube_rotation.y += 0.02;
     cube_rotation.z += 0.04;
-    /*
-    cube_rotation.x = 60;
-    cube_rotation.y = 90;
-    cube_rotation.z = 52;
-*/
-    cube_translation.z = 60.0;
-/*
+    */
+    //cube_rotation.x = 60;
+    //cube_rotation.y = 90;
+    //cube_rotation.z = 52;
+
+    cube_rotation.x = 4.9;
+    cube_rotation.y = 5.89;
+    cube_rotation.z = 3.69;
+
+    cube_translation.z = 40.0;
+
     luz.direction = vec3_rotate_y(luz.direction, delta_angulo_luz);
     angulo_luz += delta_angulo_luz;
     if (angulo_luz > 2 * M_PI) {
         angulo_luz -= 2 * M_PI;
-    }*/
+    }
 
     // Create scale, rotation and translation matrices that will ve used to multiply the Mesh
     mat4_t scale_matrix = mat4_make_scale(cube_scale.x,
@@ -319,6 +323,8 @@ void update(void) {
 }
 
 float phong_lighting(vec3_t normal) {
+    vec3_t direccion_camara = {0, 0, 1};
+
     // Luz ambiente
     float ambiente = luz.ambient;
 
@@ -328,17 +334,17 @@ float phong_lighting(vec3_t normal) {
     float difusa = fmax(vec3_dot(luz_n, normal), 0.0f);
 
     // Luz especular
-    vec3_t camara_n = camara;
-    vec3_normalize(&camara_n);
     vec3_t reflect_dir = vec3_mul(normal, 2.0f * vec3_dot(normal, luz_n));
     vec3_normalize(&reflect_dir);
     reflect_dir = vec3_sub(reflect_dir, luz_n);
     vec3_normalize(&reflect_dir);
     
-    float shininess = 32.0f;
-    float specular_coeff = 0.5f;
-    float spec = pow(fmax(vec3_dot(camara_n, reflect_dir), 0.0f), shininess);
-    float specular = specular_coeff * spec * 0;
+    vec3_t camara_n = direccion_camara;
+    vec3_normalize(&camara_n);
+    float brillo = 32.0f;
+    float specular_coeff = 1.0f;
+    float spec = pow(fmax(vec3_dot(reflect_dir, camara_n), 0.0f), brillo);
+    float specular = specular_coeff * spec;
 
     // Iluminación
     float phong = ambiente + difusa + specular;
